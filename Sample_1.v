@@ -3,14 +3,14 @@ module Sample_1(
 	input wire RESET,
 	input wire SENSOR_DATA,
 
-	output wire CON_ZERO,
+	output reg frame_sync_start,
 	output wire S_DATA,
 	output wire	S_WREN
 );
 
 parameter C_BIT_LEN_W = 5;
 parameter HF_BIT=8,FL_BIT=17;
-parameter CNT_250PP=6000,CNT_1PP=153;
+parameter CNT_250PP=6060,CNT_1PP=153;
 /*-------------------######--IDDR---########-----------------------------
  --IDDR register for sampling the input data
  -----------------------------------------------------------------------*/
@@ -61,8 +61,10 @@ end
 -- I_IDDR_Q="10"  (=> I_ADD=1)
 -- I_IDDR_Q="11"  if I_LAST_IDDR_Q(0) = '1' (=> I_ADD=2), 	 (=> I_ADD+=2)
 -------------------------------------------------------------------------------*/
- (* noprune *)reg[C_BIT_LEN_W-1:0] I_ADD;
- (* noprune *)reg[C_BIT_LEN_W-1:0]  I_BIT_LEN,I_BIT_LEN1,I_BIT_LEN_L,I_BIT_LEN_MIN,I_BIT_LEN_MAX;
+reg[C_BIT_LEN_W-1:0] I_ADD;
+reg[C_BIT_LEN_W-1:0]  I_BIT_LEN,I_BIT_LEN1,I_BIT_LEN_L,I_BIT_LEN_MIN,I_BIT_LEN_MAX;
+// (* noprune *)reg[C_BIT_LEN_W-1:0] I_ADD;
+// (* noprune *)reg[C_BIT_LEN_W-1:0]  I_BIT_LEN,I_BIT_LEN1,I_BIT_LEN_L,I_BIT_LEN_MIN,I_BIT_LEN_MAX;
 
 
 always@(posedge SCLOCK or negedge RESET)
@@ -161,7 +163,8 @@ end
 --judging from the data in I_LAST_IDDR_Q and I_LAST_IDDR_L
 --I_BIT_TRANS is activated every time a transition in the bit stream occurs 
 --------------------------------------------------------------------------------*/
-(* noprune *)reg I_BIT_TRANS;
+reg I_BIT_TRANS;
+//(* noprune *)reg I_BIT_TRANS;
 
 always@(posedge SCLOCK or negedge RESET)
 begin
@@ -217,7 +220,8 @@ end
 /*-----------------------------------------------------------------------
 --data valid signal
 -------------------------------------------------------------------------*/
-(* noprune *)reg con_zero=0;						//indicating the continuous zero time
+reg con_zero=0;						//indicating the continuous zero time
+//(* noprune *)reg con_zero=0;
 
 always@(posedge SCLOCK or negedge RESET)		
 begin
@@ -235,10 +239,11 @@ begin
 			begin con_zero<=1'b0;end
 end
 
-assign CON_ZERO=con_zero;
 
 
-(* noprune *)reg con_zero_L=0;	
+
+reg con_zero_L=0;	
+//(* noprune *)reg con_zero_L=0;
 
 always@(posedge SCLOCK or negedge RESET)
 begin
@@ -252,7 +257,7 @@ end
 
 
 /*--------------------------------------------------------------------------------
--- comparator which decides, whether a "half"-bit period was received
+-- comparator which decides, whether a "half"-bit period or "full" bit was received
 --------------------------------------------------------------------------------*/
 (* noprune *)reg  I_HB_PERIOD,I_FB_PERIOD,I_B_ERROR;
 
@@ -457,7 +462,7 @@ end
 --write enable generate--------
 *****************************************/
 (* noprune *)reg  M_WREN=0;
-(* noprune *)reg cnt=0 ; 
+reg cnt=0 ; 
 always@(posedge SCLOCK or negedge RESET)
 begin
   if (RESET == 1'b0)
@@ -467,7 +472,8 @@ begin
 	else
 	begin
 		//if(I_FB_PERIOD==1'b1)
-		if(I_COMP_EN == 1'b1)
+		//if(I_COMP_EN == 1'b1)
+		if(I_BIT_TRANS == 1'b1)
 		begin
 			cnt <= ~cnt;
 		end
@@ -489,7 +495,8 @@ begin
 	begin
 		if(n_state == s_dec_start)
 		begin
-			if((I_CHECK_EN == 1'b1)&(cnt==1'b1)|(I_CHECK_EN == 1'b1)&(I_FB_PERIOD==1'b1))
+			//if((I_CHECK_EN == 1'b1)&(cnt==1'b1)|(I_CHECK_EN == 1'b1)&(I_FB_PERIOD==1'b1))
+			if((I_COMP_EN == 1'b1)&(cnt==1'b0)|(I_COMP_EN == 1'b1)&(I_FB_PERIOD==1'b1))
 			begin
 				M_WREN <= 1'b1;
 			end
@@ -509,6 +516,27 @@ assign S_DATA=I_OUTPUT;
 assign S_WREN=M_WREN;
 
 
+/*****************************************
+--frame start for deserializer--------
+*****************************************/
+always@(posedge SCLOCK or negedge RESET)
+begin
+  if (RESET == 1'b0)
+	  begin
+		frame_sync_start <= 0;
+	  end
+	else
+	begin
+		if(c_state != s_dec_start)
+			begin
+				frame_sync_start<=1'b0;
+			end
+		else
+			begin
+				frame_sync_start <= 1'b1;
+			end
+	end	
+end
 
 
 endmodule
