@@ -10,15 +10,15 @@ module Sample_1(
 
 parameter C_BIT_LEN_W = 5;
 parameter HF_BIT=8,FL_BIT=17;
-parameter CNT_250PP=6060,CNT_1PP=153;
+parameter CNT_250PP=6054,CNT_1PP=153;
 /*-------------------######--IDDR---########-----------------------------
  --IDDR register for sampling the input data
  -----------------------------------------------------------------------*/
 wire I_IDDR_Q0;
 wire I_IDDR_Q1;
-(* noprune *)reg[1:0] I_IDDR_Q;
-(* noprune *)reg[1:0] I_LAST_IDDR_Q;
-(* noprune *)reg[1:0] I_LAST_IDDR_L;
+reg[1:0] I_IDDR_Q;
+reg[1:0] I_LAST_IDDR_Q;
+reg[1:0] I_LAST_IDDR_L;
 /*-----------------------------------------------------------------------
 --double edge sampling
 -------------------------------------------------------------------------*/
@@ -201,7 +201,7 @@ end
 -- I_COMP_EN <= I_BIT_TRANS   delayed by one clock cycle
 -- I_CHECK_EN <= I_COMP_EN    delayed by one clock cycle
 ----------------------------------------------------------------------------**/
-(* noprune *)reg  I_COMP_EN,I_CHECK_EN;
+reg  I_COMP_EN,I_CHECK_EN;
 always@(posedge SCLOCK or negedge RESET)
 begin
   if (RESET == 1'b0)
@@ -259,7 +259,7 @@ end
 /*--------------------------------------------------------------------------------
 -- comparator which decides, whether a "half"-bit period or "full" bit was received
 --------------------------------------------------------------------------------*/
-(* noprune *)reg  I_HB_PERIOD,I_FB_PERIOD,I_B_ERROR;
+reg  I_HB_PERIOD,I_FB_PERIOD,I_B_ERROR;
 
 always@(posedge SCLOCK or negedge RESET)
 begin
@@ -429,7 +429,7 @@ end
 --COM2:Decode Output--------
 *****************************************/
 
-(* noprune *)reg I_OUTPUT=0;
+reg I_OUTPUT=0;
 
 always@(posedge SCLOCK or negedge RESET)
 begin
@@ -461,7 +461,7 @@ end
 /*****************************************
 --write enable generate--------
 *****************************************/
-(* noprune *)reg  M_WREN=0;
+reg  M_WREN=0;
 reg cnt=0 ; 
 always@(posedge SCLOCK or negedge RESET)
 begin
@@ -496,7 +496,7 @@ begin
 		if(n_state == s_dec_start)
 		begin
 			//if((I_CHECK_EN == 1'b1)&(cnt==1'b1)|(I_CHECK_EN == 1'b1)&(I_FB_PERIOD==1'b1))
-			if((I_COMP_EN == 1'b1)&(cnt==1'b0)|(I_COMP_EN == 1'b1)&(I_FB_PERIOD==1'b1))
+			if((I_COMP_EN == 1'b1)&(cnt==1'b1)|(I_COMP_EN == 1'b1)&(I_FB_PERIOD==1'b1))
 			begin
 				M_WREN <= 1'b1;
 			end
